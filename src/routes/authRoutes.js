@@ -1,28 +1,45 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const router = express.Router();
+const authService = require('../services/authService');
+const { formatSuccess, formatError } = require('../utils/responseFormatter');
 
-// Mock user database
-const users = [
-  { username: 'admin', password: bcrypt.hashSync('password123', 10) }
-];
+router.post('/signup', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-// Login route
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json(formatError('Email and password are required'));
+    }
 
-  const user = users.find((u) => u.username === username);
-
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ message: 'Invalid username or password' });
+    const result = await authService.signUp(email, password);
+    res.status(201).json(formatSuccess(result));
+  } catch (error) {
+    res.status(400).json(formatError(error.message));
   }
+});
 
-  const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, {
-    expiresIn: '1h'
-  });
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  res.json({ token });
+    if (!email || !password) {
+      return res.status(400).json(formatError('Email and password are required'));
+    }
+
+    const { token, user } = await authService.signIn(email, password);
+    res.json(formatSuccess({ token, user }));
+  } catch (error) {
+    res.status(401).json(formatError(error.message));
+  }
+});
+
+router.post('/logout', async (req, res) => {
+  try {
+    await authService.signOut();
+    res.json(formatSuccess({ message: 'Logged out successfully' }));
+  } catch (error) {
+    res.status(500).json(formatError(error.message));
+  }
 });
 
 module.exports = router;
