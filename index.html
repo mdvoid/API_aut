@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Person Data API Test</title>
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    async function loginUser() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('http://localhost:3000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!response.ok) {
+          throw new Error('Login failed');
+        }
+
+        const data = await response.json();
+        localStorage.setItem('token', data.token); // Save JWT token in localStorage
+        alert('Logged in successfully');
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function fetchPersons() {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        alert('Please log in first');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/persons`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch persons');
+        }
+
+        const persons = await response.json();
+        console.log(persons); // Log data to console for testing
+
+        let personsList = '<ul>';
+        persons.forEach(person => {
+          personsList += `<li>${person.name} - ${person.profession}</li>`;
+        });
+        personsList += '</ul>';
+
+        document.getElementById('person-list').innerHTML = personsList;
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function fetchPersonById() {
+      const personId = document.getElementById('personId').value;
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        alert('Please log in first');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/person/${personId}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch person');
+        }
+
+        const person = await response.json();
+        document.getElementById('person-detail').innerHTML = `
+          <p>Name: ${person.name}</p>
+          <p>Profession: ${person.profession}</p>
+          <p>Bio: ${person.bio}</p>
+        `;
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Person Data API Test</h1>
+
+  <h2>Login</h2>
+  <input type="text" id="username" placeholder="Username" required />
+  <input type="password" id="password" placeholder="Password" required />
+  <button onclick="loginUser()">Login</button>
+
+  <h2>Fetch All Persons</h2>
+  <button onclick="fetchPersons()">Fetch Persons</button>
+  <div id="person-list"></div>
+
+  <h2>Fetch Person by ID</h2>
+  <input type="text" id="personId" placeholder="Person ID" />
+  <button onclick="fetchPersonById()">Fetch Person</button>
+  <div id="person-detail"></div>
+</body>
+</html>
